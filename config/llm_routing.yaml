@@ -1,0 +1,43 @@
+# LLM task routing — maps each task to a provider + model.
+# Switch provider per-task without code changes.
+llm:
+  routing:
+    parse_workout:
+      provider: openai
+      model: gpt-4o-mini
+    suggest_workout_tweaks:
+      provider: openai
+      model: gpt-4o
+    generate_weekly_plan:
+      provider: openai
+      model: gpt-4o
+    generate_daily_meals:
+      provider: openai
+      model: gpt-4o-mini
+    generate_weekly_meals:
+      provider: openai
+      model: gpt-4o-mini
+    swap_meal:
+      provider: openai
+      model: gpt-4o-mini
+    estimate_macros:
+      provider: openai
+      model: gpt-4o-mini
+    compare_photos:
+      provider: openai
+      model: gpt-4o       # vision required
+    weekly_report:
+      provider: openai
+      model: gpt-4o
+    update_narrative:
+      provider: openai
+      model: gpt-4o-mini
+    competition_search:
+      provider: openai
+      model: gpt-4o       # web_search tool
+    canonicalize_exercise:
+      provider: openai
+      model: gpt-4o-mini
+    restaurant_recommendations:
+      provider: openai
+      model: gpt-4o-mini
