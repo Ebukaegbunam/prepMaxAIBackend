@@ -5,8 +5,8 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
 
-# Import all models here so they register with Base.metadata
-# from app.db import models  # noqa: F401 — uncomment as models are added
+# Import all models so they register with Base.metadata
+from app.db import models  # noqa: F401
 
 from app.db.base import Base
 

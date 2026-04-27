@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.config import get_settings
 
 
-def _make_engine() -> tuple[object, async_sessionmaker[AsyncSession]]:
+def _make_engine() -> tuple[object, async_sessionmaker[AsyncSession]]:  # type: ignore[type-arg]
     settings = get_settings()
     engine = create_async_engine(
         settings.DATABASE_URL,
@@ -13,12 +13,15 @@ def _make_engine() -> tuple[object, async_sessionmaker[AsyncSession]]:
         pool_pre_ping=True,
         pool_size=10,
         max_overflow=20,
+        # Supabase uses pgbouncer in transaction mode which does not support
+        # prepared statements — disable the asyncpg statement cache.
+        connect_args={"statement_cache_size": 0},
     )
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     return engine, session_factory
 
 
-_engine, _AsyncSessionLocal = _make_engine()
+_engine, AsyncSessionLocal = _make_engine()
 
 
 def get_engine() -> object:
@@ -26,7 +29,7 @@ def get_engine() -> object:
 
 
 async def get_db() -> AsyncIterator[AsyncSession]:
-    async with _AsyncSessionLocal() as session:
+    async with AsyncSessionLocal() as session:
         try:
             yield session
         except Exception:

@@ -10,9 +10,10 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 
 from app.config import get_settings
 from app.middleware.logging_mw import LoggingMiddleware
+from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.test_gate import TestGateMiddleware
-from app.routes import health
+from app.routes import auth, health, profile, test_endpoints
 
 
 def _configure_structlog(log_level: str, is_production: bool) -> None:
@@ -71,6 +72,7 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(RequestIDMiddleware)
     app.add_middleware(LoggingMiddleware)
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(TestGateMiddleware)
 
     @app.exception_handler(Exception)
@@ -83,6 +85,9 @@ def create_app() -> FastAPI:
         )
 
     app.include_router(health.router)
+    app.include_router(auth.router)
+    app.include_router(profile.router)
+    app.include_router(test_endpoints.router)
 
     return app
 
