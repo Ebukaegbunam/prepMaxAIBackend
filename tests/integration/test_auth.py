@@ -99,8 +99,7 @@ class TestGoogleCallback:
         assert "session" in data
         assert data["session"]["access_token"] == access_token
 
-    async def test_supabase_error_falls_back_to_jwt_decode(self, client):
-        # When Supabase exchange fails, route tries to decode code as a JWT
+    async def test_supabase_error_returns_401(self, client):
         mock_resp = MagicMock()
         mock_resp.status_code = 400
         mock_resp.json.return_value = {"error": "invalid_grant"}
@@ -113,18 +112,24 @@ class TestGoogleCallback:
         with patch("httpx.AsyncClient", return_value=mock_http):
             resp = await client.post(
                 "/auth/google/callback",
-                json={"code": "not-a-valid-token"},
+                json={"code": "invalid-code", "code_verifier": "bad-verifier"},
             )
 
         assert resp.status_code == 401
 
-    async def test_supabase_error_with_valid_jwt_succeeds(self, client):
+    async def test_callback_with_code_verifier(self, client):
         user_id = str(uuid.uuid4())
         access_token = _make_token(user_id)
 
         mock_resp = MagicMock()
-        mock_resp.status_code = 400
-        mock_resp.json.return_value = {"error": "invalid_grant"}
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "access_token": access_token,
+            "refresh_token": "rt-test",
+            "expires_in": 3600,
+            "token_type": "bearer",
+            "user": {"id": user_id, "email": "test@example.com", "user_metadata": {}},
+        }
 
         mock_http = MagicMock()
         mock_http.__aenter__ = AsyncMock(return_value=mock_http)
@@ -132,13 +137,15 @@ class TestGoogleCallback:
         mock_http.post = AsyncMock(return_value=mock_resp)
 
         with patch("httpx.AsyncClient", return_value=mock_http):
-            # Pass a real JWT as the code — route will fall back to JWT decode
             resp = await client.post(
                 "/auth/google/callback",
-                json={"code": access_token},
+                json={"code": "pkce-auth-code", "code_verifier": "the-verifier"},
             )
 
         assert resp.status_code == 200
+        # Verify code_verifier was forwarded to Supabase
+        call_json = mock_http.post.call_args.kwargs.get("json") or mock_http.post.call_args.args[1] if mock_http.post.call_args.args[1:] else mock_http.post.call_args[1].get("json", {})
+        assert call_json.get("code_verifier") == "the-verifier"
 
 
 class TestRefresh:

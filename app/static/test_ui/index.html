@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrepAI Test UI</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #0f0f0f; color: #e0e0e0; display: flex; height: 100vh; overflow: hidden; }
+#sidebar { width: 210px; min-width: 210px; background: #161616; border-right: 1px solid #2a2a2a; overflow-y: auto; padding: 0 0 20px; }
+#sidebar-title { font-size: 14px; font-weight: 700; color: #fff; padding: 16px; border-bottom: 1px solid #2a2a2a; }
+.group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #444; padding: 14px 14px 4px; }
+.nav-item { padding: 8px 14px; font-size: 13px; cursor: pointer; color: #999; border-left: 3px solid transparent; }
+.nav-item:hover { background: #1e1e1e; color: #ddd; }
+.nav-item.active { background: #1a2540; color: #7cb9f4; border-left-color: #2563eb; font-weight: 600; }
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+#topbar { padding: 10px 18px; background: #161616; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+#topbar .lbl { font-size: 11px; color: #555; }
+#jwt-pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: #1a2e1a; color: #4ade80; border: 1px solid #1f4d1f; }
+#jwt-pill.empty { background: #2e1a1a; color: #f87171; border-color: #4d1f1f; }
+#content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.card { background: #161616; border: 1px solid #2a2a2a; border-radius: 10px; margin-bottom: 18px; overflow: hidden; }
+.card-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #222; }
+.badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 5px; flex-shrink: 0; }
+.GET    { background: #0d3321; color: #4ade80; }
+.POST   { background: #0d1f3c; color: #60a5fa; }
+.PATCH  { background: #2d1f00; color: #fbbf24; }
+.DELETE { background: #2d0d0d; color: #f87171; }
+.card-path { font-family: 'SF Mono', Consolas, monospace; font-size: 13px; color: #bbb; }
+.card-body { padding: 14px 16px; }
+.field-row { display: grid; gap: 10px; margin-bottom: 10px; }
+.field-row.cols-1 { grid-template-columns: 1fr; }
+.field-row.cols-2 { grid-template-columns: 1fr 1fr; }
+.field-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+.req { color: #f87171; margin-left: 2px; }
+.opt { color: #444; font-size: 10px; margin-left: 4px; font-style: italic; text-transform: none; letter-spacing: 0; }
+.field input, .field select, .field textarea {
+  background: #111; border: 1px solid #2a2a2a; border-radius: 6px;
+  color: #e0e0e0; font-size: 13px; padding: 7px 10px; width: 100%;
+}
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #2563eb; }
+.field textarea { font-family: inherit; resize: vertical; min-height: 80px; }
+.hint-text { font-size: 10px; color: #444; margin-top: 2px; }
+.url-param-block { background: #0d0d0d; border: 1px solid #1e1e1e; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; }
+.url-param-block label { font-size: 11px; color: #555; text-transform: uppercase; display: block; margin-bottom: 4px; }
+.url-param-block input { background: #111; border: 1px solid #2a2a2a; border-radius: 5px; color: #e0e0e0; font-size: 12px; padding: 6px 10px; width: 100%; }
+.url-param-block input:focus { outline: none; border-color: #2563eb; }
+.actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.btn { cursor: pointer; border: none; border-radius: 6px; padding: 7px 16px; font-size: 13px; font-weight: 600; }
+.btn:hover { opacity: 0.85; }
+.btn-send { background: #2563eb; color: #fff; }
+.btn-secondary { background: #1e1e1e; color: #888; border: 1px solid #2a2a2a; font-weight: 400; }
+.resp-wrap { margin-top: 14px; }
+.resp-meta { font-size: 11px; color: #555; margin-bottom: 5px; display: flex; gap: 10px; }
+.s-ok { color: #4ade80; font-weight: 700; }
+.s-err { color: #f87171; font-weight: 700; }
+pre.resp-body { background: #0a0a0a; border: 1px solid #1e1e1e; border-radius: 6px; padding: 12px; font-size: 12px; font-family: 'SF Mono', Consolas, monospace; max-height: 320px; overflow: auto; color: #d4d4d4; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
+.sse-log { background: #0a0a0a; border: 1px solid #1e1e1e; border-radius: 6px; padding: 10px; max-height: 280px; overflow-y: auto; font-family: 'SF Mono', Consolas, monospace; font-size: 11px; }
+.sse-row { padding: 3px 0; border-bottom: 1px solid #141414; display: flex; gap: 8px; }
+.sse-ts { color: #444; flex-shrink: 0; }
+.sse-evt { color: #60a5fa; flex-shrink: 0; min-width: 72px; }
+.sse-dat { color: #d4d4d4; word-break: break-all; }
+.drop-zone { border: 2px dashed #2a2a2a; border-radius: 8px; padding: 28px; text-align: center; color: #555; cursor: pointer; }
+.drop-zone:hover { border-color: #2563eb; color: #60a5fa; background: #0d1a2e; }
+#toast { position: fixed; bottom: 20px; right: 20px; background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 9px 16px; font-size: 12px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 9999; }
+</style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <div id="sidebar-title">PrepAI Dev UI</div>
+  <div class="group-label">Auth</div>
+  <div class="nav-item" data-sec="auth">🔑 Sign In / JWT</div>
+  <div class="group-label">System</div>
+  <div class="nav-item" data-sec="health">Health</div>
+  <div class="group-label">Profile</div>
+  <div class="nav-item" data-sec="profile_get">Get Profile</div>
+  <div class="nav-item" data-sec="profile_init">Initialize Profile</div>
+  <div class="nav-item" data-sec="profile_patch">Update Profile</div>
+  <div class="group-label">Prep</div>
+  <div class="nav-item" data-sec="preps_list">List Preps</div>
+  <div class="nav-item" data-sec="preps_create">Create Prep</div>
+  <div class="nav-item" data-sec="preps_get">Get Prep</div>
+  <div class="nav-item" data-sec="preps_calories">Calorie Targets</div>
+  <div class="group-label">Training</div>
+  <div class="nav-item" data-sec="workouts_list">List Templates</div>
+  <div class="nav-item" data-sec="sessions_create">Log Session</div>
+  <div class="nav-item" data-sec="sets_create">Log Set</div>
+  <div class="nav-item" data-sec="ex_history">Exercise History</div>
+  <div class="group-label">Nutrition</div>
+  <div class="nav-item" data-sec="meals_gen">Generate Meal Plan</div>
+  <div class="nav-item" data-sec="meal_log">Log Meal</div>
+  <div class="nav-item" data-sec="daily_meals">Daily Summary</div>
+  <div class="group-label">Progress</div>
+  <div class="nav-item" data-sec="weight_log">Log Weight</div>
+  <div class="nav-item" data-sec="weight_list">Weight History</div>
+  <div class="nav-item" data-sec="measure_log">Log Measurements</div>
+  <div class="nav-item" data-sec="checkin_create">Create Check-In</div>
+  <div class="group-label">Competitions</div>
+  <div class="nav-item" data-sec="comp_search">Search</div>
+  <div class="nav-item" data-sec="comp_save">Save Competition</div>
+  <div class="nav-item" data-sec="comp_saved">My Saved</div>
+  <div class="group-label">AI</div>
+  <div class="nav-item" data-sec="ai_parse">Parse Workout</div>
+  <div class="nav-item" data-sec="ai_macros">Estimate Macros</div>
+  <div class="nav-item" data-sec="ai_restaurants">Restaurants Near</div>
+  <div class="nav-item" data-sec="ai_sse">SSE Streams</div>
+  <div class="group-label">Admin</div>
+  <div class="nav-item" data-sec="admin_cost">Cost Rollup</div>
+  <div class="nav-item" data-sec="admin_rl">Rate Limit</div>
+  <div class="nav-item" data-sec="admin_health">Deep Health</div>
+  <div class="group-label">Files</div>
+  <div class="nav-item" data-sec="files">Photo Upload</div>
+</nav>
+
+<div id="main">
+  <div id="topbar">
+    <span class="lbl">Auth:</span>
+    <span id="jwt-pill" class="empty">No JWT — go to Sign In</span>
+    <button class="btn btn-secondary" style="margin-left:auto" onclick="clearJwt()">Clear JWT</button>
+  </div>
+  <div id="content"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ── globals ────────────────────────────────────────────────────
+// Extract a clean JWT from any pasted text (handles "JWT: eyJ..." or multi-line output)
+function extractJwt(text) {
+  if (!text) return '';
+  // Pull out the eyJ... token — JWT tokens are always base64url with two dots
+  const m = text.match(/eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]*/);
+  return m ? m[0] : text.replace(/\s+/g, '');
+}
+
+let JWT = extractJwt(localStorage.getItem('prepai_jwt') || '');
+let ADMIN_TOKEN = (localStorage.getItem('prepai_admin') || '').trim();
+
+// Registry maps endpoint id → { method, pathTemplate, pathParams, fields, queryFields }
+const REG = {};
+
+function register(id, cfg) { REG[id] = cfg; }
+
+function refreshPill() {
+  const el = document.getElementById('jwt-pill');
+  if (JWT) { el.textContent = JWT.slice(0, 30) + '…'; el.className = ''; }
+  else      { el.textContent = 'No JWT — go to Sign In'; el.className = 'empty'; }
+}
+refreshPill();
+
+function clearJwt() { JWT = ''; localStorage.removeItem('prepai_jwt'); refreshPill(); toast('JWT cleared'); }
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 2200);
+}
+
+// ── request ────────────────────────────────────────────────────
+function hdrs() {
+  const h = { 'Content-Type': 'application/json' };
+  const cleanJwt = extractJwt(JWT);
+  if (cleanJwt) h['Authorization'] = 'Bearer ' + cleanJwt;
+  const cleanAdmin = ADMIN_TOKEN.trim();
+  if (cleanAdmin) h['X-Admin-Token'] = cleanAdmin;
+  return h;
+}
+
+async function go(id) {
+  const cfg = REG[id];
+  if (!cfg) return;
+
+  // Build URL from template + path params
+  let url = cfg.pathTemplate;
+  (cfg.pathParams || []).forEach(p => {
+    const el = document.getElementById(id + '_pp_' + p.key);
+    const val = el ? el.value.trim() : '';
+    url = url.replace('{' + p.key + '}', val || ('{' + p.key + '}'));
+  });
+
+  // Query params (for GET endpoints with filters)
+  if (cfg.queryFields && cfg.queryFields.length) {
+    const params = new URLSearchParams();
+    cfg.queryFields.forEach(f => {
+      const el = document.getElementById(id + '_' + f.key);
+      if (el && el.value.trim()) params.set(f.key, el.value.trim());
+    });
+    const qs = params.toString();
+    if (qs) url += '?' + qs;
+  }
+
+  // Body from form fields
+  let body = null;
+  if (cfg.fields && cfg.fields.length) {
+    body = {};
+    cfg.fields.forEach(f => {
+      const el = document.getElementById(id + '_' + f.key);
+      if (!el) return;
+      let val = el.value.trim();
+      if (val === '') return;
+      if (f.type === 'number') val = parseFloat(val);
+      else if (f.type === 'bool') val = (val === 'true');
+      body[f.key] = val;
+    });
+  }
+
+  const metaEl = document.getElementById(id + '_meta');
+  const respEl = document.getElementById(id + '_resp');
+  metaEl.innerHTML = '<span style="color:#555">Sending…</span>';
+  respEl.textContent = '';
+
+  try {
+    const opts = { method: cfg.method, headers: hdrs() };
+    if (body && Object.keys(body).length) opts.body = JSON.stringify(body);
+    const t0 = Date.now();
+    const res = await fetch(url, opts);
+    const ms = Date.now() - t0;
+    const txt = await res.text();
+    let display = txt;
+    try { display = JSON.stringify(JSON.parse(txt), null, 2); } catch (_) {}
+    metaEl.innerHTML = `<span class="${res.ok ? 's-ok' : 's-err'}">HTTP ${res.status}</span><span>${ms} ms</span>`;
+    respEl.textContent = display;
+  } catch (e) {
+    metaEl.innerHTML = '<span class="s-err">Network error</span>';
+    respEl.textContent = e.message;
+  }
+}
+
+function copyCurl(id) {
+  const cfg = REG[id];
+  if (!cfg) return;
+  let url = cfg.pathTemplate;
+  (cfg.pathParams || []).forEach(p => {
+    const el = document.getElementById(id + '_pp_' + p.key);
+    url = url.replace('{' + p.key + '}', el ? el.value.trim() : '{' + p.key + '}');
+  });
+  let body = {};
+  (cfg.fields || []).forEach(f => {
+    const el = document.getElementById(id + '_' + f.key);
+    if (el && el.value.trim()) {
+      let val = el.value.trim();
+      if (f.type === 'number') val = parseFloat(val);
+      else if (f.type === 'bool') val = (val === 'true');
+      body[f.key] = val;
+    }
+  });
+  const authH = JWT ? ` -H "Authorization: Bearer ${JWT}"` : '';
+  const bodyH = Object.keys(body).length ? ` -H "Content-Type: application/json" -d '${JSON.stringify(body)}'` : '';
+  navigator.clipboard.writeText(`curl -X ${cfg.method}${authH}${bodyH} "http://localhost:8000${url}"`)
+    .then(() => toast('Copied!'))
+    .catch(() => toast('Copy failed — check clipboard permissions'));
+}
+
+// ── HTML builders ──────────────────────────────────────────────
+function field(id, f) {
+  const reqMark = f.required ? '<span class="req">*</span>' : '<span class="opt">optional</span>';
+  let input;
+  if (f.type === 'select') {
+    input = `<select id="${id}_${f.key}">${f.options.map(o =>
+      `<option value="${o.v}"${f.default === o.v ? ' selected' : ''}>${o.l}</option>`
+    ).join('')}</select>`;
+  } else if (f.type === 'textarea') {
+    input = `<textarea id="${id}_${f.key}">${f.default !== undefined ? f.default : ''}</textarea>`;
+  } else {
+    const t = f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : f.type === 'datetime' ? 'datetime-local' : 'text';
+    input = `<input id="${id}_${f.key}" type="${t}" value="${f.default !== undefined ? f.default : ''}" placeholder="${f.placeholder || ''}">`;
+  }
+  const hint = f.hint ? `<span class="hint-text">${f.hint}</span>` : '';
+  return `<div class="field"><label>${f.label}${reqMark}</label>${input}${hint}</div>`;
+}
+
+function renderFields(id, fields) {
+  // Group consecutive non-textarea fields into rows of 2; textarea always alone
+  let html = '';
+  let pending = [];
+  function flushPending() {
+    if (!pending.length) return;
+    const cls = pending.length === 1 ? 'cols-1' : 'cols-2';
+    html += `<div class="field-row ${cls}">` + pending.map(f => field(id, f)).join('') + '</div>';
+    pending = [];
+  }
+  (fields || []).forEach(f => {
+    if (f.type === 'textarea' || f.fullWidth) {
+      flushPending();
+      html += `<div class="field-row cols-1">${field(id, f)}</div>`;
+    } else {
+      pending.push(f);
+      if (pending.length === 2) flushPending();
+    }
+  });
+  flushPending();
+  return html;
+}
+
+function card(id, cfg) {
+  register(id, cfg);
+  const paramsHtml = (cfg.pathParams || []).map(p => `
+    <div class="url-param-block">
+      <label>${p.label} <span class="req">*</span></label>
+      <input id="${id}_pp_${p.key}" placeholder="${p.hint || 'UUID'}" value="${p.default || ''}">
+    </div>`).join('');
+
+  const bodyHtml = cfg.fields ? renderFields(id, cfg.fields) : '';
+  const queryHtml = cfg.queryFields ? renderFields(id, cfg.queryFields.map(f => ({ ...f, key: f.key }))) : '';
+
+  const hasBody = (cfg.fields && cfg.fields.length) || (cfg.queryFields && cfg.queryFields.length) || (cfg.pathParams && cfg.pathParams.length);
+
+  return `
+  <div class="card">
+    <div class="card-head">
+      <span class="badge ${cfg.method}">${cfg.method}</span>
+      <span class="card-path">${cfg.pathTemplate}</span>
+    </div>
+    <div class="card-body">
+      ${paramsHtml}${queryHtml}${bodyHtml}
+      <div class="actions">
+        <button class="btn btn-send" onclick="go('${id}')">Send</button>
+        <button class="btn btn-secondary" onclick="copyCurl('${id}')">Copy curl</button>
+      </div>
+      <div class="resp-wrap">
+        <div class="resp-meta" id="${id}_meta"></div>
+        <pre class="resp-body" id="${id}_resp"></pre>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── today helper ───────────────────────────────────────────────
+const TODAY_DT = new Date().toISOString().slice(0, 16);
+const TODAY_D  = new Date().toISOString().slice(0, 10);
+
+// ── sections ───────────────────────────────────────────────────
+const SECTIONS = {
+
+auth: () => `
+  <div class="card">
+    <div class="card-head"><span class="badge GET">DEV</span><span class="card-path">Dev User Token (one-click)</span></div>
+    <div class="card-body">
+      <p style="font-size:13px;color:#777;line-height:1.6;margin-bottom:14px">
+        Click the button — the server creates the dev user in the DB and returns a signed JWT.
+        It is saved automatically so every other endpoint works straight away.
+      </p>
+      <div class="actions">
+        <button class="btn btn-send" onclick="getDevToken()">Get Dev Token</button>
+      </div>
+      <div id="dev_token_result" style="margin-top:12px;display:none">
+        <div style="font-size:11px;color:#4ade80;margin-bottom:6px">✓ Token saved — valid 24 h</div>
+        <div style="font-size:11px;color:#888">User ID: <code id="dev_user_id" style="color:#a78bfa"></code></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="badge POST">AUTH</span><span class="card-path">Paste existing JWT</span></div>
+    <div class="card-body">
+      <div class="field-row cols-1">
+        <div class="field">
+          <label>JWT Token</label>
+          <textarea id="jwt_paste" placeholder="eyJ..." style="min-height:90px;font-family:monospace;font-size:11px"></textarea>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-send" onclick="saveJwt()">Save JWT</button>
+      </div>
+    </div>
+  </div>
+  ${card('auth_google', { method: 'GET', pathTemplate: '/auth/google/start' })}`,
+
+health: () =>
+  card('health', { method: 'GET', pathTemplate: '/health' }) +
+  card('ready',  { method: 'GET', pathTemplate: '/ready' }),
+
+profile_get: () => card('pg', { method: 'GET', pathTemplate: '/profile' }),
+
+profile_init: () => card('pi', {
+  method: 'POST', pathTemplate: '/profile/initialize',
+  fields: [
+    { key: 'name',                   label: 'Full Name',             type: 'text',   required: true,  default: 'Ebuka' },
+    { key: 'sex',                    label: 'Sex',                   type: 'select', required: false, default: 'male', options: [{v:'male',l:'Male'},{v:'female',l:'Female'},{v:'other',l:'Other'}] },
+    { key: 'age',                    label: 'Age',                   type: 'number', required: false, default: 31 },
+    { key: 'height_cm',              label: 'Height (cm)',           type: 'number', required: false, default: 178 },
+    { key: 'training_days_per_week', label: 'Training Days / Week', type: 'number', required: false, default: 5 },
+    { key: 'units_weight',           label: 'Weight Units',          type: 'select', required: false, default: 'lb', options: [{v:'lb',l:'lb'},{v:'kg',l:'kg'}] },
+    { key: 'cooking_skill',          label: 'Cooking Skill',         type: 'select', required: false, default: 'intermediate', options: [{v:'beginner',l:'Beginner'},{v:'intermediate',l:'Intermediate'},{v:'advanced',l:'Advanced'}] },
+    { key: 'preferred_training_time',label: 'Training Time',         type: 'select', required: false, default: 'morning', options: [{v:'morning',l:'Morning'},{v:'midday',l:'Midday'},{v:'afternoon',l:'Afternoon'},{v:'evening',l:'Evening'}] },
+    { key: 'stress_level',           label: 'Stress Level',          type: 'select', required: false, default: 'moderate', options: [{v:'low',l:'Low'},{v:'moderate',l:'Moderate'},{v:'high',l:'High'}] },
+    { key: 'job_type',               label: 'Job Type',              type: 'text',   required: false, default: 'desk job' },
+    { key: 'sleep_window',           label: 'Sleep Window',          type: 'text',   required: false, default: '10pm–6am' },
+    { key: 'free_text_about_me',     label: 'About Me (AI uses this to write your narrative)', type: 'textarea', required: false, fullWidth: true,
+      default: "I've been training for 8 years, competed twice in NPC. Best lifts: 405 squat, 315 bench, 495 deadlift. Goal is to compete at NPC Bay Area in August 2026 in classic physique." },
+  ]
+}),
+
+profile_patch: () => card('pp', {
+  method: 'PATCH', pathTemplate: '/profile',
+  fields: [
+    { key: 'name',                   label: 'Full Name',             type: 'text',   required: false, default: '' },
+    { key: 'age',                    label: 'Age',                   type: 'number', required: false, default: '' },
+    { key: 'height_cm',              label: 'Height (cm)',           type: 'number', required: false, default: '' },
+    { key: 'training_days_per_week', label: 'Training Days / Week', type: 'number', required: false, default: '' },
+    { key: 'stress_level',           label: 'Stress Level',          type: 'select', required: false, default: '', options: [{v:'',l:'— no change —'},{v:'low',l:'Low'},{v:'moderate',l:'Moderate'},{v:'high',l:'High'}] },
+    { key: 'free_text_update',       label: 'Free Text Update (triggers AI narrative regen)', type: 'textarea', required: false, fullWidth: true, default: '' },
+  ]
+}),
+
+preps_list:   () => card('prl', { method: 'GET', pathTemplate: '/preps' }),
+
+preps_create: () => card('prc', {
+  method: 'POST', pathTemplate: '/preps',
+  fields: [
+    { key: 'division',           label: 'Division',            type: 'select', required: true, default: 'classic_physique',
+      options: [{v:'classic_physique',l:'Classic Physique'},{v:'men_physique',l:"Men's Physique"},{v:'women_physique',l:"Women's Physique"},{v:'bikini',l:'Bikini'},{v:'mens_open',l:"Men's Open"},{v:'womens_figure',l:"Women's Figure"}] },
+    { key: 'prep_length_weeks',  label: 'Length (weeks)',      type: 'number', required: false, default: 16 },
+    { key: 'start_date',         label: 'Start Date',          type: 'date',   required: true,  default: '2026-05-04' },
+    { key: 'starting_weight_kg', label: 'Starting Weight (kg)',type: 'number', required: false, default: 84.5 },
+    { key: 'target_weight_kg',   label: 'Target Weight (kg)', type: 'number', required: false, default: 78.0 },
+    { key: 'starting_bf_pct',    label: 'Starting BF%',       type: 'number', required: false, default: 14.0 },
+    { key: 'target_bf_pct',      label: 'Target BF%',         type: 'number', required: false, default: 7.0 },
+  ]
+}),
+
+preps_get: () => card('prg', {
+  method: 'GET', pathTemplate: '/preps/{id}',
+  pathParams: [{ key: 'id', label: 'Prep ID' }]
+}),
+
+preps_calories: () => card('prcal', {
+  method: 'GET', pathTemplate: '/preps/{id}/calorie-targets',
+  pathParams: [{ key: 'id', label: 'Prep ID' }]
+}),
+
+workouts_list: () => card('wtl', { method: 'GET', pathTemplate: '/workouts' }),
+
+sessions_create: () => card('sc', {
+  method: 'POST', pathTemplate: '/preps/{prep_id}/sessions',
+  pathParams: [{ key: 'prep_id', label: 'Prep ID' }],
+  fields: [
+    { key: 'started_at', label: 'Started At', type: 'datetime', required: true, default: TODAY_DT },
+    { key: 'title',      label: 'Title',       type: 'text',     required: false, default: 'Push Day' },
+  ]
+}),
+
+sets_create: () => card('stc', {
+  method: 'POST', pathTemplate: '/sessions/{id}/sets',
+  pathParams: [{ key: 'id', label: 'Session ID' }],
+  fields: [
+    { key: 'exercise_name_raw', label: 'Exercise Name', type: 'text',   required: true,  default: 'Incline Dumbbell Press', fullWidth: true },
+    { key: 'set_number',        label: 'Set #',          type: 'number', required: false, default: 1 },
+    { key: 'reps',              label: 'Reps',            type: 'number', required: false, default: 12 },
+    { key: 'weight_kg',         label: 'Weight (kg)',     type: 'number', required: false, default: 38.5 },
+    { key: 'rpe',               label: 'RPE (1–10)',      type: 'number', required: false, default: 8 },
+  ]
+}),
+
+ex_history: () => card('exh', {
+  method: 'GET', pathTemplate: '/exercises/by-canonical/{id}/history',
+  pathParams: [{ key: 'id', label: 'Canonical Exercise ID' }]
+}),
+
+meals_gen: () => card('mg', {
+  method: 'POST', pathTemplate: '/preps/{prep_id}/weekly-plans',
+  pathParams: [{ key: 'prep_id', label: 'Prep ID' }],
+  fields: [{ key: 'week_number', label: 'Week Number', type: 'number', required: true, default: 1 }]
+}),
+
+meal_log: () => card('ml', {
+  method: 'POST', pathTemplate: '/meal-plans/{id}/logs',
+  pathParams: [{ key: 'id', label: 'Meal Plan ID' }],
+  fields: [
+    { key: 'food_name',  label: 'Food Name',   type: 'text',   required: true,  default: 'Grilled Chicken Breast', fullWidth: true },
+    { key: 'calories',   label: 'Calories',    type: 'number', required: true,  default: 280 },
+    { key: 'protein_g',  label: 'Protein (g)', type: 'number', required: true,  default: 52 },
+    { key: 'carbs_g',    label: 'Carbs (g)',   type: 'number', required: true,  default: 0 },
+    { key: 'fat_g',      label: 'Fat (g)',     type: 'number', required: true,  default: 6 },
+    { key: 'quantity',   label: 'Quantity',    type: 'number', required: false, default: 1 },
+    { key: 'unit',       label: 'Unit',        type: 'text',   required: false, default: 'serving' },
+  ]
+}),
+
+daily_meals: () => card('dml', {
+  method: 'GET', pathTemplate: '/preps/{prep_id}/daily-meal-logs',
+  pathParams: [{ key: 'prep_id', label: 'Prep ID' }]
+}),
+
+weight_log: () => card('wl', {
+  method: 'POST', pathTemplate: '/preps/{prep_id}/weight-logs',
+  pathParams: [{ key: 'prep_id', label: 'Prep ID' }],
+  fields: [
+    { key: 'weight_kg', label: 'Weight (kg)', type: 'number',   required: true,  default: 84.2 },
+    { key: 'logged_at', label: 'Logged At',   type: 'datetime', required: false, default: TODAY_DT },
+    { key: 'notes',     label: 'Notes',        type: 'textarea', required: false, fullWidth: true, default: 'Fasted, post-cardio' },
+  ]
+}),
+
+weight_list: () => card('wll', {
+  method: 'GET', pathTemplate: '/preps/{prep_id}/weight-logs',
+  pathParams: [{ key: 'prep_id', label: 'Prep ID' }]
+}),
+
+measure_log: () => card('mel', {
+  method: 'POST', pathTemplate: '/preps/{prep_id}/measurement-logs',
+  pathParams: [{ key: 'prep_id', label: 'Prep ID' }],
+  fields: [
+    { key: 'chest_cm',       label: 'Chest (cm)',       type: 'number', required: false, default: 104 },
+    { key: 'waist_cm',       label: 'Waist (cm)',       type: 'number', required: false, default: 82 },
+    { key: 'hips_cm',        label: 'Hips (cm)',        type: 'number', required: false, default: 97 },
+    { key: 'left_arm_cm',    label: 'Left Arm (cm)',    type: 'number', required: false, default: 40 },
+    { key: 'right_arm_cm',   label: 'Right Arm (cm)',   type: 'number', required: false, default: 40 },
+    { key: 'left_thigh_cm',  label: 'Left Thigh (cm)',  type: 'number', required: false, default: 60 },
+    { key: 'right_thigh_cm', label: 'Right Thigh (cm)', type: 'number', required: false, default: 60 },
+    { key: 'logged_at',      label: 'Logged At',        type: 'datetime', required: false, default: TODAY_DT },
+  ]
+}),
+
+checkin_create: () => card('ci', {
+  method: 'POST', pathTemplate: '/preps/{prep_id}/check-ins',
+  pathParams: [{ key: 'prep_id', label: 'Prep ID' }],
+  fields: [
+    { key: 'week_number',    label: 'Week #',           type: 'number',   required: true,  default: 1 },
+    { key: 'completed_at',   label: 'Completed At',     type: 'datetime', required: true,  default: TODAY_DT },
+    { key: 'weight_kg',      label: 'Weight (kg)',      type: 'number',   required: false, default: 84.2 },
+    { key: 'mood',           label: 'Mood (1–5)',       type: 'number',   required: false, default: 4 },
+    { key: 'energy',         label: 'Energy (1–5)',     type: 'number',   required: false, default: 4 },
+    { key: 'sleep',          label: 'Sleep (1–5)',      type: 'number',   required: false, default: 3 },
+    { key: 'training_quality', label: 'Training (1–5)', type: 'number',   required: false, default: 4 },
+    { key: 'notes',          label: 'Notes',            type: 'textarea', required: false, fullWidth: true, default: 'Conditioning improving. Hold current deficit.' },
+  ]
+}),
+
+comp_search: () => card('cs', {
+  method: 'GET', pathTemplate: '/competitions/search',
+  queryFields: [
+    { key: 'division',   label: 'Division',   type: 'text', required: false, default: 'classic_physique' },
+    { key: 'federation', label: 'Federation', type: 'text', required: false, default: 'NPC' },
+    { key: 'start',      label: 'Start Date', type: 'date', required: false, default: '' },
+    { key: 'end',        label: 'End Date',   type: 'date', required: false, default: '' },
+  ]
+}),
+
+comp_save: () => card('csv', {
+  method: 'POST', pathTemplate: '/users/me/saved-competitions',
+  fields: [{ key: 'competition_id', label: 'Competition ID', type: 'text', required: true, default: '', fullWidth: true, placeholder: 'UUID from search results' }]
+}),
+
+comp_saved: () => card('csl', { method: 'GET', pathTemplate: '/users/me/saved-competitions' }),
+
+ai_parse: () => card('ap', {
+  method: 'POST', pathTemplate: '/ai/parse-workout',
+  fields: [
+    { key: 'prep_id',  label: 'Prep ID',  type: 'text',   required: true,  default: '', fullWidth: true, placeholder: 'UUID' },
+    { key: 'division', label: 'Division', type: 'select', required: false, default: 'classic_physique',
+      options: [{v:'classic_physique',l:'Classic Physique'},{v:'mens_physique',l:"Men's Physique"},{v:'bodybuilding',l:'Bodybuilding'}] },
+    { key: 'text', label: 'Workout (natural language)', type: 'textarea', required: true, fullWidth: true,
+      default: `Day 1 - Push
+Incline DB Press 4x12 @ 85lbs
+Flat Barbell Bench 3x8 @ 185lbs
+Cable Flyes 3x15
+Overhead Press 4x10 @ 115lbs
+Lateral Raises 4x15 @ 25lbs
+Tricep Rope Pushdown 3x15` },
+  ]
+}),
+
+ai_macros: () => card('am', {
+  method: 'POST', pathTemplate: '/ai/estimate-macros',
+  fields: [{ key: 'food_description', label: 'Food Description', type: 'textarea', required: true, fullWidth: true,
+    default: '6oz grilled chicken breast with 1 cup white rice and a side of steamed broccoli' }]
+}),
+
+ai_restaurants: () => card('ar', {
+  method: 'POST', pathTemplate: '/ai/restaurants-near',
+  fields: [
+    { key: 'lat',           label: 'Latitude',   type: 'number', required: true,  default: 37.8044 },
+    { key: 'lng',           label: 'Longitude',  type: 'number', required: true,  default: -122.2712 },
+    { key: 'radius_meters', label: 'Radius (m)', type: 'number', required: false, default: 2000 },
+    { key: 'query',         label: 'Query',      type: 'text',   required: false, default: 'high protein meal prep', fullWidth: true },
+  ]
+}),
+
+ai_sse: () => `
+  <div class="card">
+    <div class="card-head"><span class="badge POST">SSE</span><span class="card-path">/preps/{id}/compare-photos</span></div>
+    <div class="card-body">
+      <div class="field-row cols-1">
+        <div class="field"><label>Prep ID <span class="req">*</span></label><input id="sse_cp_prep" placeholder="UUID"></div>
+      </div>
+      <div class="field-row cols-2">
+        <div class="field"><label>Photo A ID <span class="req">*</span></label><input id="sse_cp_a" placeholder="UUID"></div>
+        <div class="field"><label>Photo B ID <span class="req">*</span></label><input id="sse_cp_b" placeholder="UUID"></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-send" onclick="startSSE('POST','/preps/'+document.getElementById('sse_cp_prep').value+'/compare-photos',{photo_a_id:document.getElementById('sse_cp_a').value,photo_b_id:document.getElementById('sse_cp_b').value},'sse_cp_log','sse_cp_meta')">Stream</button>
+      </div>
+      <div class="resp-wrap"><div class="resp-meta" id="sse_cp_meta"></div><div class="sse-log" id="sse_cp_log"></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="badge POST">SSE</span><span class="card-path">/preps/{id}/weekly-report</span></div>
+    <div class="card-body">
+      <div class="field-row cols-2">
+        <div class="field"><label>Prep ID <span class="req">*</span></label><input id="sse_wr_prep" placeholder="UUID"></div>
+        <div class="field"><label>Week Number <span class="req">*</span></label><input id="sse_wr_week" type="number" value="1"></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-send" onclick="startSSE('POST','/preps/'+document.getElementById('sse_wr_prep').value+'/weekly-report',{week_number:parseInt(document.getElementById('sse_wr_week').value)},'sse_wr_log','sse_wr_meta')">Stream</button>
+      </div>
+      <div class="resp-wrap"><div class="resp-meta" id="sse_wr_meta"></div><div class="sse-log" id="sse_wr_log"></div></div>
+    </div>
+  </div>`,
+
+admin_cost: () => `
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-body">
+      <div class="field-row cols-1">
+        <div class="field">
+          <label>X-Admin-Token</label>
+          <input id="admin_tok_input" type="password" value="${ADMIN_TOKEN}" placeholder="admin secret" oninput="ADMIN_TOKEN=this.value;localStorage.setItem('prepai_admin',this.value)">
+        </div>
+      </div>
+    </div>
+  </div>
+  ${card('ac', { method: 'GET', pathTemplate: '/__admin__/cost-rollup' })}`,
+
+admin_rl: () => card('arl', {
+  method: 'GET', pathTemplate: '/__admin__/rate-limit/{user_id}',
+  pathParams: [{ key: 'user_id', label: 'User ID' }]
+}),
+
+admin_health: () => card('ah', { method: 'GET', pathTemplate: '/__admin__/health/deep' }),
+
+files: () => `
+  <div class="card">
+    <div class="card-head"><span class="badge POST">FILES</span><span class="card-path">Photo Upload</span></div>
+    <div class="card-body">
+      <p style="font-size:13px;color:#777;margin-bottom:14px;line-height:1.6">
+        Flow: <b>1</b> Get signed upload URL &nbsp;→&nbsp; <b>2</b> PUT file to that URL &nbsp;→&nbsp; <b>3</b> Register photo with the returned path.
+      </p>
+      <div class="drop-zone" onclick="document.getElementById('file_pick').click()">
+        Drop image here or click to select
+        <input id="file_pick" type="file" accept="image/*" style="display:none" onchange="pickFile(event)">
+      </div>
+      <div id="file_status" style="margin-top:10px;font-size:12px;color:#666;font-family:monospace"></div>
+      <div class="actions" style="margin-top:14px">
+        <button class="btn btn-send" onclick="go('furl')">1 · Get Upload URL</button>
+      </div>
+      <div class="resp-wrap"><div class="resp-meta" id="furl_meta"></div><pre class="resp-body" id="furl_resp"></pre></div>
+    </div>
+  </div>`,
+};
+
+// register the file upload URL card
+register('furl', { method: 'GET', pathTemplate: '/files/upload-url' });
+
+// ── auth helpers ───────────────────────────────────────────────
+async function getDevToken() {
+  try {
+    const res = await fetch('/__test__/token');
+    if (!res.ok) { toast('Failed: ' + res.status); return; }
+    const data = await res.json();
+    JWT = data.token;
+    localStorage.setItem('prepai_jwt', JWT);
+    refreshPill();
+    const box = document.getElementById('dev_token_result');
+    const uid = document.getElementById('dev_user_id');
+    if (box) box.style.display = 'block';
+    if (uid) uid.textContent = data.user_id;
+    toast('Dev token saved ✓');
+  } catch(e) {
+    toast('Error: ' + e.message);
+  }
+}
+
+function saveJwt() {
+  const el = document.getElementById('jwt_paste');
+  JWT = extractJwt(el ? el.value : '');
+  if (JWT) {
+    localStorage.setItem('prepai_jwt', JWT);
+    // Show what was extracted so user can verify
+    if (el) el.value = JWT;
+  } else {
+    localStorage.removeItem('prepai_jwt');
+  }
+  refreshPill();
+  toast(JWT ? 'JWT saved ✓' : 'JWT cleared');
+}
+
+// ── SSE ────────────────────────────────────────────────────────
+async function startSSE(method, url, body, logId, metaId) {
+  const logEl = document.getElementById(logId);
+  const metaEl = document.getElementById(metaId);
+  logEl.innerHTML = ''; metaEl.innerHTML = '<span style="color:#555">Connecting…</span>';
+  try {
+    const res = await fetch(url, { method, headers: hdrs(), body: JSON.stringify(body) });
+    metaEl.innerHTML = `<span class="${res.ok ? 's-ok' : 's-err'}">HTTP ${res.status}</span>`;
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) { metaEl.innerHTML += ' <span style="color:#444">· ended</span>'; break; }
+      buf += dec.decode(value, { stream: true });
+      const parts = buf.split('\n\n'); buf = parts.pop();
+      for (const p of parts) {
+        if (!p.trim()) continue;
+        let evt = 'message', dat = '';
+        p.split('\n').forEach(l => {
+          if (l.startsWith('event: ')) evt = l.slice(7);
+          if (l.startsWith('data: '))  dat = l.slice(6);
+        });
+        let disp = dat;
+        try { disp = JSON.stringify(JSON.parse(dat), null, 2); } catch (_) {}
+        logEl.innerHTML += `<div class="sse-row"><span class="sse-ts">${new Date().toLocaleTimeString()}</span><span class="sse-evt">${evt}</span><span class="sse-dat">${disp}</span></div>`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+    }
+  } catch (e) {
+    metaEl.innerHTML = `<span class="s-err">Error: ${e.message}</span>`;
+  }
+}
+
+// ── file drop ──────────────────────────────────────────────────
+function pickFile(e) {
+  const f = e.target.files[0];
+  if (f) document.getElementById('file_status').textContent = `Selected: ${f.name} (${(f.size/1024).toFixed(1)} KB)`;
+}
+
+// ── navigation ─────────────────────────────────────────────────
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('content').innerHTML = (SECTIONS[el.dataset.sec] || (() => '<p style="color:#555;padding:20px">Not found</p>'))();
+  });
+});
+
+// start on health
+document.querySelector('[data-sec="health"]').click();
+</script>
+</body>
+</html>

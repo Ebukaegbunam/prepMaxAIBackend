@@ -1,0 +1,134 @@
+{
+  "profile_initialize": {
+    "minimal": {
+      "first_name": "Test",
+      "sex": "male",
+      "date_of_birth": "1990-01-01",
+      "height_cm": 180,
+      "weight_kg": 85,
+      "training_days_per_week": 5
+    },
+    "ebuka": {
+      "first_name": "Ebuka",
+      "sex": "male",
+      "date_of_birth": "1994-03-15",
+      "height_cm": 178,
+      "weight_kg": 84.5,
+      "training_days_per_week": 5,
+      "division": "classic_physique",
+      "free_text_update": "I've been training for 8 years, competed twice in NPC. My best lifts are 405 squat, 315 bench, 495 deadlift. Goal is to compete in August 2026 NPC Bay Area."
+    },
+    "invalid": {
+      "first_name": "Missing"
+    }
+  },
+  "prep_create": {
+    "minimal": {
+      "division": "mens_physique",
+      "start_date": "2026-05-04",
+      "target_date": "2026-08-24",
+      "prep_length_weeks": 16,
+      "starting_weight_kg": 85,
+      "target_weight_kg": 78,
+      "starting_bf_pct": 14,
+      "target_bf_pct": 7,
+      "phase_split": {"maintenance_weeks": 4, "cut_weeks": 12}
+    },
+    "ebuka": {
+      "division": "classic_physique",
+      "start_date": "2026-05-04",
+      "target_date": "2026-08-24",
+      "prep_length_weeks": 16,
+      "starting_weight_kg": 84.5,
+      "target_weight_kg": 78.0,
+      "starting_bf_pct": 14.0,
+      "target_bf_pct": 7.0,
+      "phase_split": {"maintenance_weeks": 4, "cut_weeks": 12}
+    },
+    "invalid": {
+      "division": "classic_physique"
+    }
+  },
+  "parse_workout": {
+    "minimal": {
+      "text": "bench press 3x10 @ 135"
+    },
+    "ebuka": {
+      "text": "Day 1 - Chest/Shoulders/Triceps\nIncline DB Press 4x12 @ 85lbs\nFlat Barbell Bench 3x8 @ 185lbs\nCable Flyes 3x15\nOHP 4x10 @ 115lbs\nLateral Raises 4x15 @ 25lbs\nTricep Rope Pushdown 3x15\nOverhead Extension 3x12",
+      "division": "classic_physique"
+    },
+    "invalid": {}
+  },
+  "session_create": {
+    "minimal": {
+      "started_at": "2026-05-04T09:00:00Z"
+    },
+    "ebuka": {
+      "started_at": "2026-05-04T09:00:00Z",
+      "completed_at": "2026-05-04T10:30:00Z",
+      "notes": "Felt strong today. PR on incline."
+    },
+    "invalid": {}
+  },
+  "set_log_create": {
+    "minimal": {
+      "exercise_name": "Bench Press",
+      "set_number": 1,
+      "reps": 10,
+      "weight_kg": 100
+    },
+    "ebuka": {
+      "exercise_name": "Incline Dumbbell Press",
+      "set_number": 1,
+      "reps": 12,
+      "weight_kg": 38.5,
+      "rpe": 8
+    },
+    "invalid": {
+      "exercise_name": "Bench Press"
+    }
+  },
+  "weight_log": {
+    "minimal": {
+      "weight_kg": 84.0,
+      "logged_at": "2026-05-04T08:00:00Z"
+    },
+    "ebuka": {
+      "weight_kg": 84.2,
+      "logged_at": "2026-05-04T07:30:00Z",
+      "notes": "After morning cardio, fasted"
+    },
+    "invalid": {}
+  },
+  "competition_save": {
+    "minimal": {
+      "competition_id": "00000000-0000-0000-0000-000000000000"
+    },
+    "invalid": {}
+  },
+  "estimate_macros": {
+    "minimal": {
+      "food_description": "grilled chicken breast"
+    },
+    "ebuka": {
+      "food_description": "6oz grilled chicken breast with 1 cup white rice and steamed broccoli"
+    },
+    "invalid": {}
+  },
+  "restaurants_near": {
+    "minimal": {
+      "lat": 37.8044,
+      "lng": -122.2712,
+      "radius_meters": 1000
+    },
+    "ebuka": {
+      "lat": 37.8044,
+      "lng": -122.2712,
+      "radius_meters": 2000,
+      "query": "healthy high protein meal prep"
+    },
+    "invalid": {
+      "lat": 37.8044
+    }
+  }
+}

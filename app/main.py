@@ -1,19 +1,22 @@
 import logging
+from pathlib import Path
 
 import sentry_sdk
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
 from app.config import get_settings
+from app.llm.base import CostCapExceededError, LLMError
 from app.middleware.logging_mw import LoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.test_gate import TestGateMiddleware
-from app.routes import auth, health, profile, test_endpoints
+from app.routes import admin, ai_routes, auth, competitions, health, meals, preps, profile, progress, sessions, test_endpoints, workouts
 
 
 def _configure_structlog(log_level: str, is_production: bool) -> None:
@@ -75,6 +78,24 @@ def create_app() -> FastAPI:
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(TestGateMiddleware)
 
+    @app.exception_handler(CostCapExceededError)
+    async def _cost_cap_handler(request: Request, exc: CostCapExceededError) -> JSONResponse:
+        log = structlog.get_logger()
+        log.warning("cost_cap_exceeded", error=str(exc))
+        return JSONResponse(
+            status_code=429,
+            content={"error": {"code": "cost_cap_exceeded", "message": str(exc)}},
+        )
+
+    @app.exception_handler(LLMError)
+    async def _llm_error_handler(request: Request, exc: LLMError) -> JSONResponse:
+        log = structlog.get_logger()
+        log.error("ai_provider_error", error=str(exc))
+        return JSONResponse(
+            status_code=502,
+            content={"error": {"code": "ai_provider_error", "message": "AI provider returned an error"}},
+        )
+
     @app.exception_handler(Exception)
     async def _global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         log = structlog.get_logger()
@@ -87,7 +108,24 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(profile.router)
+    app.include_router(preps.router)
+    app.include_router(workouts.router)
+    app.include_router(sessions.router)
+    app.include_router(meals.router)
+    app.include_router(progress.router)
+    app.include_router(competitions.router)
+    app.include_router(ai_routes.router)
+    app.include_router(admin.router)
     app.include_router(test_endpoints.router)
+
+    # Test UI — gated by TestGateMiddleware (returns 404 in production)
+    _static_dir = Path(__file__).parent / "static"
+    if _static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
+
+    @app.get("/__test__/ui", include_in_schema=False)
+    async def test_ui() -> FileResponse:
+        return FileResponse(str(_static_dir / "test_ui" / "index.html"))
 
     return app
 

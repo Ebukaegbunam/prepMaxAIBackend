@@ -5,6 +5,12 @@ from pydantic import BaseModel
 
 class GoogleCallbackRequest(BaseModel):
     code: str
+    code_verifier: str = ""
+
+
+class AppleCallbackRequest(BaseModel):
+    identity_token: str
+    nonce: str
 
 
 class RefreshRequest(BaseModel):
