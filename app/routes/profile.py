@@ -1,12 +1,14 @@
-"""Profile routes — GET, PATCH, and POST /initialize."""
+"""Profile routes — GET, PATCH, POST /initialize, DELETE."""
 from typing import Annotated
 from uuid import UUID
 
+import httpx
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.supabase_jwt import AuthUser, get_current_user
+from app.config import get_settings
 from app.db.session import get_db
 from app.schemas.profile import ProfileInitializeRequest, ProfilePatchRequest, ProfileResponse
 from app.services import profile_service
@@ -74,3 +76,25 @@ async def patch_profile(
             detail={"error": {"code": "not_found", "message": str(exc)}},
         )
     return ProfileResponse.model_validate(profile)
+
+
+@router.delete("", status_code=204)
+async def delete_account(
+    user: Annotated[AuthUser, Depends(get_current_user)],
+) -> None:
+    """Hard-delete the authenticated user from Supabase (cascades all data via FK)."""
+    settings = get_settings()
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.delete(
+            f"{settings.SUPABASE_URL}/auth/v1/admin/users/{user.id}",
+            headers={
+                "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+            },
+        )
+    if resp.status_code not in (200, 204):
+        log.error("delete_account_failed", user_id=user.id, status=resp.status_code)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": {"code": "delete_failed", "message": "Failed to delete account"}},
+        )
