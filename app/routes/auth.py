@@ -13,20 +13,23 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 log = structlog.get_logger()
 
 
-def _oauth_start_url(settings, provider: str) -> str:
-    params = {
+def _oauth_start_url(settings, provider: str, code_challenge: str = "", code_challenge_method: str = "S256") -> str:
+    params: dict[str, str] = {
         "provider": provider,
         "redirect_to": "prepmax://auth/callback",
         "access_type": "offline",
         "scopes": "email profile",
     }
+    if code_challenge:
+        params["code_challenge"] = code_challenge
+        params["code_challenge_method"] = code_challenge_method
     return f"{settings.SUPABASE_URL}/auth/v1/authorize?{urlencode(params)}"
 
 
 @router.get("/google/start", response_model=AuthStartResponse)
-async def google_start() -> AuthStartResponse:
+async def google_start(code_challenge: str = "", code_challenge_method: str = "S256") -> AuthStartResponse:
     settings = get_settings()
-    return AuthStartResponse(auth_url=_oauth_start_url(settings, "google"))
+    return AuthStartResponse(auth_url=_oauth_start_url(settings, "google", code_challenge, code_challenge_method))
 
 
 @router.get("/apple/start", response_model=AuthStartResponse)
