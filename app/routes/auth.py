@@ -17,10 +17,9 @@ def _oauth_start_url(settings, provider: str, code_challenge: str = "", code_cha
     params: dict[str, str] = {
         "provider": provider,
         "redirect_to": "prepmax://auth/callback",
-        "access_type": "offline",
-        "scopes": "email profile",
     }
     if code_challenge:
+        params["flow_type"] = "pkce"
         params["code_challenge"] = code_challenge
         params["code_challenge_method"] = code_challenge_method
     return f"{settings.SUPABASE_URL}/auth/v1/authorize?{urlencode(params)}"
