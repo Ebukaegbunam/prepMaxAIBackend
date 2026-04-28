@@ -4,6 +4,7 @@ from pathlib import Path
 import sentry_sdk
 import structlog
 from fastapi import FastAPI, Request
+from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -77,6 +78,20 @@ def create_app() -> FastAPI:
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(TestGateMiddleware)
+
+    @app.exception_handler(FastAPIHTTPException)
+    async def _http_exception_handler(request: Request, exc: FastAPIHTTPException) -> JSONResponse:
+        # Unwrap our {error: {code, message}} detail into the root so the client
+        # always sees {"error": {...}} instead of {"detail": {"error": {...}}}.
+        if isinstance(exc.detail, dict) and "error" in exc.detail:
+            content = exc.detail
+        else:
+            content = {"error": {"code": "http_error", "message": str(exc.detail)}}
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=content,
+            headers=dict(exc.headers) if exc.headers else {},
+        )
 
     @app.exception_handler(CostCapExceededError)
     async def _cost_cap_handler(request: Request, exc: CostCapExceededError) -> JSONResponse:

@@ -34,6 +34,20 @@ async def create_prep(
     return PrepResponse.model_validate(prep)
 
 
+@router.get("/current", response_model=PrepResponse)
+async def get_current_prep(
+    user: Annotated[AuthUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PrepResponse:
+    prep = await prep_service.get_current_prep(UUID(user.id), db)
+    if prep is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": {"code": "not_found", "message": "No active prep"}},
+        )
+    return PrepResponse.model_validate(prep)
+
+
 @router.get("/{prep_id}", response_model=PrepResponse)
 async def get_prep(
     prep_id: UUID,

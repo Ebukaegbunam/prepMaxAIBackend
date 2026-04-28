@@ -8,6 +8,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.prep import Prep
 
 
+async def get_current_prep(user_id: UUID, db: AsyncSession) -> Prep | None:
+    result = await db.execute(
+        select(Prep)
+        .where(Prep.user_id == user_id, Prep.status == "active")
+        .order_by(Prep.created_at.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
 async def list_preps(user_id: UUID, db: AsyncSession) -> list[Prep]:
     result = await db.execute(
         select(Prep).where(Prep.user_id == user_id).order_by(Prep.created_at.desc())
