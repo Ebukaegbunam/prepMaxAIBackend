@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class PrepCreate(BaseModel):
@@ -53,3 +53,22 @@ class PrepResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def current_week(self) -> int:
+        elapsed = (date.today() - self.start_date).days
+        week = (elapsed // 7) + 1
+        return max(1, min(week, self.prep_length_weeks))
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def current_phase(self) -> Literal["maintenance", "cut", "peak"]:
+        maintenance = int(self.phase_split.get("maintenance_weeks", 0))
+        cut = int(self.phase_split.get("cut_weeks", 0))
+        w = self.current_week
+        if w <= maintenance:
+            return "maintenance"
+        if w <= maintenance + cut:
+            return "cut"
+        return "peak"
